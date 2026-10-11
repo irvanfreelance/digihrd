@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const {
       employeeId = session.employeeId,
+      locationId: requestedLocationId,
       lat,
       lng,
       accuracy = 10,
@@ -35,31 +36,32 @@ export async function POST(req: NextRequest) {
     const [emp] = await sql`
       SELECT e.*, p.employment_grade_id
       FROM employees e
-      JOIN positions p ON p.id = e.position_id
+      LEFT JOIN positions p ON p.id = e.position_id
       WHERE e.id = ${employeeId}
     `
     if (!emp) return NextResponse.json({ error: 'Karyawan tidak ditemukan' }, { status: 404 })
 
-    const locationId = emp.location_id || 1
+    // Gunakan requestedLocationId dari pilihan user jika ada, atau fallback ke default employee
+    const locationId = requestedLocationId ? Number(requestedLocationId) : (emp.location_id || 1)
     const [loc] = await sql`SELECT * FROM locations WHERE id = ${locationId}`
     if (!loc) return NextResponse.json({ error: 'Lokasi kantor tidak ditemukan' }, { status: 404 })
 
-    // Hitung jarak aktual ke titik lokasi
+    // Hitung jarak aktual ke titik lokasi kantor terpilih
     const distanceMeters = calcDistance(lat, lng, Number(loc.latitude), Number(loc.longitude))
     const isOutsideRadius = distanceMeters > Number(loc.radius_meter)
 
-    // Cek toleransi luar radius jika ada limit
-    if (isOutsideRadius && !loc.allow_outside_with_reason) {
+    // Cek toleransi luar radius jika lokasi melarang
+    if (isOutsideRadius && !loc.allow_outside_with_reason && !notes) {
       return NextResponse.json({
         status: 'tolerance_exhausted',
-        message: `Anda berada di luar radius (${distanceMeters}m > ${loc.radius_meter}m) dan lokasi ini tidak mengizinkan absensi luar radius.`,
+        message: `Anda berada di luar radius (${distanceMeters}m > ${loc.radius_meter}m) dan lokasi ini mengharuskan berada di dalam radius kantor.`,
         data: { distanceMeters, radiusMeter: loc.radius_meter }
       }, { status: 400 })
     }
 
-    // Ambil shift template
+    // Ambil shift template aktif
     const [assignment] = await sql`
-      SELECT sa.*, st.start_time, st.end_time, st.tolerance_late_minutes
+      SELECT sa.*, st.name as shift_name, st.start_time, st.end_time, st.tolerance_late_minutes
       FROM shift_assignments sa
       JOIN shift_templates st ON st.id = sa.shift_template_id
       WHERE sa.employee_id = ${employeeId}
@@ -75,7 +77,6 @@ export async function POST(req: NextRequest) {
     `
 
     const now = new Date()
-    const todayStr = now.toISOString().slice(0, 10)
     const shiftStartTime = assignment?.start_time || '08:00:00'
     const tolerance = lateRule?.tolerance_minutes ?? (assignment?.tolerance_late_minutes || 0)
 
@@ -83,7 +84,7 @@ export async function POST(req: NextRequest) {
     const attStatus = lateMinutes > 0 ? 'late' : 'present'
     const clockInStatus = isOutsideRadius ? 'outside_radius' : 'valid'
 
-    // Upsert absensi hari ini
+    // Upsert absensi hari ini (menggunakan CURRENT_DATE database agar sinkron sempurna)
     const [att] = await sql`
       INSERT INTO attendances (
         tenant_id, employee_id, location_id, shift_assignment_id,
@@ -93,21 +94,27 @@ export async function POST(req: NextRequest) {
       )
       VALUES (
         1, ${employeeId}, ${locationId}, ${assignment?.id || null},
-        ${todayStr}, NOW(), ${lat}, ${lng},
+        CURRENT_DATE, NOW(), ${lat}, ${lng},
         ${accuracy}, ${distanceMeters}, ${photoUrl},
         ${attStatus}, ${clockInStatus}, ${lateMinutes}, ${notes}
       )
       ON CONFLICT (employee_id, attendance_date)
       DO UPDATE SET
-        clock_in_at = EXCLUDED.clock_in_at,
+        location_id = EXCLUDED.location_id,
+        clock_in_at = COALESCE(attendances.clock_in_at, EXCLUDED.clock_in_at),
         clock_in_lat = EXCLUDED.clock_in_lat,
         clock_in_lng = EXCLUDED.clock_in_lng,
+        clock_in_accuracy = EXCLUDED.clock_in_accuracy,
         clock_in_distance = EXCLUDED.clock_in_distance,
         status = EXCLUDED.status,
         clock_in_status = EXCLUDED.clock_in_status,
         late_minutes = EXCLUDED.late_minutes,
+        outside_radius_note = COALESCE(EXCLUDED.outside_radius_note, attendances.outside_radius_note),
         updated_at = NOW()
-      RETURNING *
+      RETURNING *,
+        to_char(attendance_date, 'YYYY-MM-DD') as attendance_date_str,
+        to_char(clock_in_at, 'HH24:MI:SS') as clock_in_time_str,
+        to_char(clock_out_at, 'HH24:MI:SS') as clock_out_time_str
     `
 
     return NextResponse.json({
@@ -119,7 +126,8 @@ export async function POST(req: NextRequest) {
         attendance: att,
         distanceMeters,
         lateMinutes,
-        locationName: loc.name
+        locationName: loc.name,
+        shiftName: assignment?.shift_name || 'Jam Kantor Standar'
       }
     })
   } catch (err: any) {

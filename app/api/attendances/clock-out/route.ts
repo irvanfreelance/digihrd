@@ -16,15 +16,21 @@ export async function POST(req: NextRequest) {
       photoUrl = null
     } = body
 
-    const todayStr = new Date().toISOString().slice(0, 10)
-
     const [att] = await sql`
       SELECT * FROM attendances
-      WHERE employee_id = ${employeeId} AND attendance_date = ${todayStr}
+      WHERE employee_id = ${employeeId} AND attendance_date = CURRENT_DATE
+      ORDER BY id DESC LIMIT 1
     `
 
     if (!att || !att.clock_in_at) {
       return NextResponse.json({ error: 'Anda belum melakukan clock-in hari ini' }, { status: 400 })
+    }
+
+    if (att.clock_out_at) {
+      return NextResponse.json({
+        error: 'Anda sudah melakukan clock-out untuk hari ini',
+        data: att
+      }, { status: 400 })
     }
 
     const clockInTime = new Date(att.clock_in_at).getTime()
@@ -42,12 +48,15 @@ export async function POST(req: NextRequest) {
         effective_work_minutes = ${effectiveMins},
         updated_at = NOW()
       WHERE id = ${att.id}
-      RETURNING *
+      RETURNING *,
+        to_char(attendance_date, 'YYYY-MM-DD') as attendance_date_str,
+        to_char(clock_in_at, 'HH24:MI:SS') as clock_in_time_str,
+        to_char(clock_out_at, 'HH24:MI:SS') as clock_out_time_str
     `
 
     return NextResponse.json({
       status: 'success',
-      message: 'Clock-out berhasil!',
+      message: 'Clock-out berhasil! Selamat beristirahat.',
       data: updated
     })
   } catch (err: any) {

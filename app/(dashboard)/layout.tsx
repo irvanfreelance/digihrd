@@ -2,6 +2,7 @@ import { neon } from '@neondatabase/serverless'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Topbar } from '@/components/layout/Topbar'
 import { ThemeProvider } from '@/components/theme/ThemeProvider'
+import { MobileNavProvider } from '@/components/layout/MobileNavContext'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,32 +44,34 @@ export default async function DashboardLayout({
 
   return (
     <ThemeProvider>
-      <div className="flex min-h-screen bg-slate-100/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
-        {/* Dynamic CSS Branding Variables */}
-        <style>{`
-          :root {
-            --color-primary: ${primaryColor};
-            --color-secondary: ${secondaryColor};
-            --slip-header-color: ${slipHeaderColor};
-            --sidebar-color: ${sidebarColor};
-            --sidebar-text-color: ${sidebarTextColor};
-          }
-        `}</style>
+      <MobileNavProvider>
+        <div className="flex min-h-screen bg-slate-100/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
+          {/* Dynamic CSS Branding Variables */}
+          <style>{`
+            :root {
+              --color-primary: ${primaryColor};
+              --color-secondary: ${secondaryColor};
+              --slip-header-color: ${slipHeaderColor};
+              --sidebar-color: ${sidebarColor};
+              --sidebar-text-color: ${sidebarTextColor};
+            }
+          `}</style>
 
-        <Sidebar
-          companyName={companyName}
-          logoUrl={logoUrl}
-          sidebarBg={sidebarColor}
-          sidebarFg={sidebarTextColor}
-        />
+          <Sidebar
+            companyName={companyName}
+            logoUrl={logoUrl}
+            sidebarBg={sidebarColor}
+            sidebarFg={sidebarTextColor}
+          />
 
-        <div className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-950 transition-colors">
-          <Topbar companyName={companyName} logoUrl={logoUrl} />
-          <main className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto">
-            {children}
-          </main>
+          <div className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-950 transition-colors">
+            <Topbar companyName={companyName} logoUrl={logoUrl} />
+            <main className="flex-1 p-3.5 sm:p-6 md:p-8 max-w-7xl w-full mx-auto">
+              {children}
+            </main>
+          </div>
         </div>
-      </div>
+      </MobileNavProvider>
     </ThemeProvider>
   )
 }

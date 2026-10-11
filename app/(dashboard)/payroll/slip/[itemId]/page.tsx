@@ -51,28 +51,28 @@ export default function SlipGajiPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-200">
-      <div className="flex items-center justify-between print:hidden">
+    <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto animate-in fade-in duration-200">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 print:hidden">
         <Link href={`/payroll/run/${item.payroll_run_id}`}>
-          <Button variant="outline" size="sm" className="gap-1">
+          <Button variant="outline" size="sm" className="gap-1 w-full sm:w-auto">
             <ArrowLeft className="w-4 h-4" />
             Kembali ke Daftar Item
           </Button>
         </Link>
-        <Button variant="brand" onClick={handlePrint} className="gap-2">
+        <Button variant="brand" onClick={handlePrint} className="gap-2 w-full sm:w-auto">
           <Printer className="w-4 h-4" />
           Cetak / Download PDF Slip
         </Button>
       </div>
 
-      {/* Tampilan Fisik Slip Gaji */}
-      <Card className="p-8 border-2 border-slate-200 dark:border-slate-800 bg-white text-slate-900 shadow-xl print:shadow-none print:border-none">
+      {/* Tampilan Fisik Slip Gaji Responsif */}
+      <Card className="p-4 sm:p-8 border-2 border-slate-200 dark:border-slate-800 bg-white text-slate-900 shadow-xl print:shadow-none print:border-none">
         {/* Header Perusahaan */}
-        <div className="border-b-2 border-slate-900 pb-5 mb-6 flex items-start justify-between">
+        <div className="border-b-2 border-slate-900 pb-4 sm:pb-5 mb-5 sm:mb-6 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <div>
             <div className="flex items-center space-x-2">
               <span className="text-2xl">🌱</span>
-              <h2 className="text-xl font-black uppercase tracking-wide text-[var(--slip-header-color,#1D4ED8)] font-heading">
+              <h2 className="text-base sm:text-xl font-black uppercase tracking-wide text-[var(--slip-header-color,#1D4ED8)] font-heading">
                 {item.company_name}
               </h2>
             </div>
@@ -80,8 +80,8 @@ export default function SlipGajiPage() {
               Jl. Industri No. 12 Cimahi - Jawa Barat • HR & Payroll System
             </p>
           </div>
-          <div className="text-right">
-            <h1 className="text-lg font-black uppercase text-slate-800 font-heading">
+          <div className="text-left sm:text-right">
+            <h1 className="text-base sm:text-lg font-black uppercase text-slate-800 font-heading">
               SLIP GAJI KARYAWAN
             </h1>
             <p className="text-xs font-semibold text-slate-600 mt-0.5">
@@ -90,8 +90,8 @@ export default function SlipGajiPage() {
           </div>
         </div>
 
-        {/* Informasi Karyawan */}
-        <div className="grid grid-cols-2 gap-4 text-xs pb-6 border-b border-slate-200 mb-6">
+        {/* Informasi Karyawan (1 kolom di mobile, 2 kolom di tablet/desktop) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs pb-5 sm:pb-6 border-b border-slate-200 mb-5 sm:mb-6">
           <div className="space-y-1.5">
             <div className="flex">
               <span className="w-32 text-slate-500">NIK / ID Karyawan:</span>
@@ -130,8 +130,8 @@ export default function SlipGajiPage() {
           </div>
         </div>
 
-        {/* Tabel Komponen Earning & Deduction */}
-        <div className="grid grid-cols-2 gap-8 text-xs mb-6">
+        {/* Tabel Komponen Earning & Deduction (1 kolom di mobile, 2 kolom di desktop) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 text-xs mb-6">
           {/* Penerimaan */}
           <div>
             <h4 className="font-bold text-slate-900 border-b border-slate-300 pb-1.5 mb-2 uppercase tracking-wider text-[11px]">
@@ -172,7 +172,7 @@ export default function SlipGajiPage() {
         </div>
 
         {/* Take Home Pay */}
-        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between mb-6">
+        <div className="p-3.5 sm:p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
               GAJI BERSIH YANG DITERIMA (TAKE HOME PAY)
@@ -181,25 +181,25 @@ export default function SlipGajiPage() {
               Terbilang: #{terbilang(Number(item.net_salary))} Rupiah#
             </p>
           </div>
-          <div className="text-2xl font-black text-emerald-600 font-heading">
+          <div className="text-xl sm:text-2xl font-black text-emerald-600 font-heading">
             {formatIDR(Number(item.net_salary))}
           </div>
         </div>
 
         {/* Tanda Tangan & QR Verification */}
-        <div className="pt-6 border-t border-slate-200 grid grid-cols-3 gap-4 text-center text-xs">
+        <div className="pt-5 sm:pt-6 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-4 text-center text-xs">
           <div>
-            <p className="text-slate-500 mb-12">Penerima,</p>
+            <p className="text-slate-500 mb-8 sm:mb-12">Penerima,</p>
             <p className="font-bold underline">{item.employee_name}</p>
           </div>
           <div className="flex flex-col items-center justify-center">
             <div className="p-2 border border-slate-300 rounded-lg bg-white shadow-sm inline-block">
-              <QrCode className="w-16 h-16 text-slate-800" />
+              <QrCode className="w-14 h-14 sm:w-16 sm:h-16 text-slate-800" />
             </div>
             <span className="text-[10px] text-slate-400 mt-1 font-mono">VERIFIKASI RESMI</span>
           </div>
           <div>
-            <p className="text-slate-500 mb-12">Bagian Keuangan & HRD,</p>
+            <p className="text-slate-500 mb-8 sm:mb-12">Bagian Keuangan & HRD,</p>
             <p className="font-bold underline">Nining Ratnasari (HR Admin)</p>
           </div>
         </div>

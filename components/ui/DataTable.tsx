@@ -117,10 +117,10 @@ export function DataTable<T extends Record<string, any>>({
   const hasActiveFilters = searchTerm !== '' || Object.values(filterValues).some(v => v && v !== 'all')
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Search Bar, Multi-Filter, PageSize & Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
-        <div className="flex flex-wrap items-center gap-3 flex-1">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 sm:p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3 flex-1">
           {/* Search by terms */}
           <div className="relative w-full sm:w-72">
             <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
@@ -134,140 +134,143 @@ export function DataTable<T extends Record<string, any>>({
           </div>
 
           {/* Multifilter Selects */}
-          {filters.map(f => (
-            <select
-              key={f.key}
-              value={filterValues[f.key] || 'all'}
-              onChange={e => handleFilterChange(f.key, e.target.value)}
-              className="h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 text-sm font-medium dark:text-slate-200"
-            >
-              <option value="all">Semua {f.label}</option>
-              {f.options.map(opt => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          ))}
+          <div className="flex flex-wrap items-center gap-2">
+            {filters.map(f => (
+              <select
+                key={f.key}
+                value={filterValues[f.key] || 'all'}
+                onChange={e => handleFilterChange(f.key, e.target.value)}
+                className="h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 text-xs sm:text-sm font-medium dark:text-slate-200 flex-1 sm:flex-initial"
+              >
+                <option value="all">Semua {f.label}</option>
+                {f.options.map(opt => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            ))}
 
-          {/* Reset button */}
-          {hasActiveFilters && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={clearFilters}
-              className="h-10 text-xs text-red-600 gap-1.5"
-            >
-              <X className="w-3.5 h-3.5" />
-              Reset Filter
-            </Button>
-          )}
+            {/* Reset button */}
+            {hasActiveFilters && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={clearFilters}
+                className="h-10 text-xs text-red-600 gap-1.5 px-2.5"
+              >
+                <X className="w-3.5 h-3.5" />
+                Reset
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Right side: Custom Actions */}
-        {actions && <div className="flex items-center gap-2">{actions}</div>}
+        {actions && <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">{actions}</div>}
       </div>
 
-      {/* Table Section */}
+      {/* Table Section with Mobile Horizontal Scroll Indicator */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {showRowNumber && (
-                <TableHead className="w-16 text-center">No.</TableHead>
+        <div className="overflow-x-auto scrollbar-thin">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {showRowNumber && (
+                  <TableHead className="w-14 text-center whitespace-nowrap">No.</TableHead>
+                )}
+                {columns.map(col => (
+                  <TableHead
+                    key={col.key}
+                    className={`whitespace-nowrap ${
+                      col.align === 'center'
+                        ? 'text-center'
+                        : col.align === 'right'
+                        ? 'text-right'
+                        : 'text-left'
+                    } ${col.className || ''}`}
+                  >
+                    {col.header}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length + (showRowNumber ? 1 : 0)}
+                    className="text-center py-10 text-slate-500 text-xs sm:text-sm"
+                  >
+                    Memuat data tabel...
+                  </TableCell>
+                </TableRow>
+              ) : paginatedData.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length + (showRowNumber ? 1 : 0)}
+                    className="text-center py-10 text-slate-500 text-xs sm:text-sm"
+                  >
+                    {emptyMessage}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginatedData.map((row, idx) => {
+                  const rowNumber = startIndex + idx + 1
+                  return (
+                    <TableRow key={row.id ?? idx}>
+                      {showRowNumber && (
+                        <TableCell className="text-center font-mono text-xs text-slate-400 font-semibold whitespace-nowrap">
+                          {rowNumber}
+                        </TableCell>
+                      )}
+                      {columns.map(col => (
+                        <TableCell
+                          key={col.key}
+                          className={`text-xs sm:text-sm ${
+                            col.align === 'center'
+                              ? 'text-center'
+                              : col.align === 'right'
+                              ? 'text-right'
+                              : 'text-left'
+                          } ${col.className || ''}`}
+                        >
+                          {col.render ? col.render(row, idx) : row[col.key]}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  )
+                })
               )}
-              {columns.map(col => (
-                <TableHead
-                  key={col.key}
-                  className={
-                    col.align === 'center'
-                      ? 'text-center'
-                      : col.align === 'right'
-                      ? 'text-right'
-                      : 'text-left'
-                  }
-                >
-                  {col.header}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length + (showRowNumber ? 1 : 0)}
-                  className="text-center py-10 text-slate-500"
-                >
-                  Memuat data tabel...
-                </TableCell>
-              </TableRow>
-            ) : paginatedData.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length + (showRowNumber ? 1 : 0)}
-                  className="text-center py-10 text-slate-500"
-                >
-                  {emptyMessage}
-                </TableCell>
-              </TableRow>
-            ) : (
-              paginatedData.map((row, idx) => {
-                const rowNumber = startIndex + idx + 1
-                return (
-                  <TableRow key={row.id ?? idx}>
-                    {showRowNumber && (
-                      <TableCell className="text-center font-mono text-xs text-slate-400 font-semibold">
-                        {rowNumber}
-                      </TableCell>
-                    )}
-                    {columns.map(col => (
-                      <TableCell
-                        key={col.key}
-                        className={
-                          col.align === 'center'
-                            ? 'text-center'
-                            : col.align === 'right'
-                            ? 'text-right'
-                            : 'text-left'
-                        }
-                      >
-                        {col.render ? col.render(row, idx) : row[col.key]}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                )
-              })
-            )}
-          </TableBody>
-        </Table>
+            </TableBody>
+          </Table>
+        </div>
 
         {/* Paging & Data Counter Footer */}
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <div className="flex items-center gap-3">
+        <div className="p-3.5 sm:p-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3 w-full sm:w-auto">
             <span>
               Menampilkan{' '}
               <strong className="text-slate-800 dark:text-slate-200">
                 {totalRows === 0 ? 0 : startIndex + 1}
               </strong>{' '}
-              sampai{' '}
+              -{' '}
               <strong className="text-slate-800 dark:text-slate-200">
                 {endIndex}
               </strong>{' '}
               dari{' '}
               <strong className="text-slate-800 dark:text-slate-200">
                 {totalRows}
-              </strong>{' '}
-              data
+              </strong>
             </span>
 
             {/* Show per berapa data (Page Size Selector) */}
-            <div className="flex items-center gap-1.5 ml-2">
-              <span>Tampilkan:</span>
+            <div className="flex items-center gap-1.5 ml-1">
+              <span>Baris:</span>
               <select
                 value={pageSize}
                 onChange={e => setPageSize(Number(e.target.value))}
-                className="h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 font-medium text-slate-700 dark:text-slate-200"
+                className="h-7 px-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 font-medium text-slate-700 dark:text-slate-200 text-xs"
               >
                 {pageSizeOptions.map(opt => (
                   <option key={opt} value={opt}>
@@ -275,7 +278,6 @@ export function DataTable<T extends Record<string, any>>({
                   </option>
                 ))}
               </select>
-              <span>baris</span>
             </div>
           </div>
 
@@ -302,7 +304,7 @@ export function DataTable<T extends Record<string, any>>({
               <ChevronLeft className="w-3.5 h-3.5" />
             </Button>
 
-            <span className="px-3 font-semibold text-slate-800 dark:text-slate-200">
+            <span className="px-2.5 font-semibold text-slate-800 dark:text-slate-200 text-xs">
               {currentPage} / {totalPages}
             </span>
 
